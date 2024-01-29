@@ -2,6 +2,7 @@ package io.scriptor.gol.graphics;
 
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
+import org.lwjgl.glfw.GLFWScrollCallbackI;
 
 import java.util.List;
 import java.util.Vector;
@@ -24,6 +25,7 @@ public class GOLWindow {
 
     private final long mPtr;
     private final List<GLFWKeyCallbackI> mKeyCallbacks = new Vector<>();
+    private final List<GLFWScrollCallbackI> mScrollCallbacks = new Vector<>();
 
     public GOLWindow(int width, int height, String title) {
         glfwDefaultWindowHints();
@@ -37,6 +39,10 @@ public class GOLWindow {
 
             for (final var callback : mKeyCallbacks)
                 callback.invoke(window, key, scancode, action, mods);
+        });
+        glfwSetScrollCallback(mPtr, (window, xoffset, yoffset) -> {
+            for (final var callback : mScrollCallbacks)
+                callback.invoke(window, xoffset, yoffset);
         });
 
         glfwMakeContextCurrent(mPtr);
@@ -57,6 +63,10 @@ public class GOLWindow {
 
     public void register(GLFWKeyCallbackI callback) {
         mKeyCallbacks.add(callback);
+    }
+
+    public void register(GLFWScrollCallbackI callback) {
+        mScrollCallbacks.add(callback);
     }
 
     public boolean getKey(int key) {

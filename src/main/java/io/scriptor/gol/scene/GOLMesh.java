@@ -83,6 +83,11 @@ public class GOLMesh {
         return this;
     }
 
+    public GOLMesh addVertex(float x, float y, float a) {
+        mVertices.add(new GOLVertex(x, y, a));
+        return this;
+    }
+
     public GOLMesh addFace(int i0, int i1, int i2) {
         mIndices.add(i0);
         mIndices.add(i1);

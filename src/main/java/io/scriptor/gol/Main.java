@@ -18,6 +18,8 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Main {
 
+    private static float zoom = 16f;
+
     public static void main(String[] args) throws IOException {
 
         GOLWindow.init();
@@ -37,6 +39,7 @@ public class Main {
                 .addFace(2, 3, 0)
                 .apply();
 
+        //final var game = new GOLGameT<>(Integer.class);
         final var game = new GOLGame();
         /*game
                 .set(0, 0, true).set(1, 0, true).set(2, 0, true).set(3, 0, true).set(4, 0, true)
@@ -47,7 +50,12 @@ public class Main {
 
         final var program = new GOLProgram("shaders/main.vsh", "shaders/main.fsh");
 
-        var zoom = 16f;
+        window.register((ptr, xoffset, yoffset) -> {
+            zoom -= (float) yoffset;
+            if (zoom < 1f)
+                zoom = 1f;
+        });
+
         final var translation = new Vector3f();
 
         boolean prevLeft = false;
@@ -74,27 +82,22 @@ public class Main {
             //final var proj = new Matrix4f().setPerspective(Math.toRadians(90.0f), a, 0.01f, 100.0f);
             //final var view = new Matrix4f().setLookAt(0.0f, 0.0f, -2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
 
-            final var selectorModel = new Matrix4f();
-            {
-                var x = pos[0] / size[0]; // 0 -> 1
-                var y = pos[1] / size[1]; // 0 -> 1
-                x = 2 * a * x - a; // -a -> a
-                y = 2 * y - 1; // -1 -> 1
-                y = -y; // invert y to be -1 -> 1 from bottom to top
+            var x = pos[0] / size[0]; // 0 -> 1
+            var y = pos[1] / size[1]; // 0 -> 1
+            x = 2 * a * x - a; // -a -> a
+            y = 2 * y - 1; // -1 -> 1
+            y = -y; // invert y to be -1 -> 1 from bottom to top
 
-                final var px = Math.round(x * zoom + translation.x);
-                final var py = Math.round(y * zoom + translation.y);
+            final var px = Math.round(x * zoom + translation.x);
+            final var py = Math.round(y * zoom + translation.y);
 
-                selectorModel.setTranslation(px, py, 0.0f);
-            }
+            final var selectorModel = new Matrix4f().setTranslation(px, py, 0.0f);
 
             final var speed = delta * 20;
             if (window.getKey(GLFW_KEY_W)) translation.y += speed;
             if (window.getKey(GLFW_KEY_S)) translation.y -= speed;
             if (window.getKey(GLFW_KEY_D)) translation.x += speed;
             if (window.getKey(GLFW_KEY_A)) translation.x -= speed;
-            if (window.getKey(GLFW_KEY_Q)) zoom += speed;
-            if (window.getKey(GLFW_KEY_E)) zoom -= speed;
 
             final var space = window.getKey(GLFW_KEY_SPACE);
             if (space && !prevSpace)
@@ -102,20 +105,8 @@ public class Main {
             prevSpace = space;
 
             final var left = window.getMouseButton(GLFW_MOUSE_BUTTON_LEFT);
-            if (left && !prevLeft) {
-                var x = pos[0] / size[0]; // 0 -> 1
-                var y = pos[1] / size[1]; // 0 -> 1
-                x = 2 * a * x - a; // -a -> a
-                y = 2 * y - 1; // -1 -> 1
-                y = -y; // invert y to be -1 -> 1 from bottom to top
-                //System.out.printf("x[-a; a]|y[-1; 1]: %f %f%n", x, y);
-
-                final var px = Math.round(x * zoom + translation.x);
-                final var py = Math.round(y * zoom + translation.y);
-                //System.out.printf("P: %d %d%n", px, py);
-
+            if (left && !prevLeft)
                 game.toggle(px, py);
-            }
             prevLeft = left;
 
             glViewport(0, 0, size[0], size[1]);

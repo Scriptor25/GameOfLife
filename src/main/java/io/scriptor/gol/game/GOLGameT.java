@@ -6,19 +6,32 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
-public class GOLGame {
+public class GOLGameT<T extends Number> {
 
-    public static boolean get(Map<Integer, Map<Integer, Boolean>> cells, int x, int y) {
+    public static <T extends Number> boolean get(Map<T, Map<T, Boolean>> cells, T x, T y) {
         return cells.containsKey(y) && cells.get(y).getOrDefault(x, false);
     }
 
-    public static void put(Map<Integer, Map<Integer, Boolean>> cells, int x, int y, boolean state) {
+    public static <T extends Number> void put(Map<T, Map<T, Boolean>> cells, T x, T y, boolean state) {
         cells.computeIfAbsent(y, key -> new HashMap<>()).put(x, state);
     }
 
-    private final Map<Integer, Map<Integer, Boolean>> mCells = new HashMap<>();
+    public static <T extends Number> T cast(int i, Class<T> clazz) {
+        if (clazz == Byte.class) return clazz.cast((byte) i);
+        if (clazz == Short.class) return clazz.cast((short) i);
+        if (clazz == Integer.class) return clazz.cast(i);
+        if (clazz == Long.class) return clazz.cast((long) i);
+        throw new RuntimeException();
+    }
+
+    private final Map<T, Map<T, Boolean>> mCells = new HashMap<>();
     private final GOLMesh mMesh = new GOLMesh();
+    private final Class<T> mClass;
     private float mTime = 0;
+
+    public GOLGameT(Class<T> clazz) {
+        mClass = clazz;
+    }
 
     public int count() {
         return mMesh.count();
@@ -32,12 +45,12 @@ public class GOLGame {
         mMesh.unbind();
     }
 
-    public GOLGame set(int x, int y, boolean alive) {
+    public GOLGameT<T> set(T x, T y, boolean alive) {
         mCells.computeIfAbsent(y, key -> new HashMap<>()).put(x, alive);
         return this;
     }
 
-    public GOLGame toggle(int x, int y) {
+    public GOLGameT<T> toggle(T x, T y) {
         return set(x, y, !get(mCells, x, y));
     }
 
@@ -48,18 +61,18 @@ public class GOLGame {
         }
         mTime = 0;
 
-        final Vector<GOLField> fields = new Vector<>();
+        final Vector<GOLFieldT<T>> fields = new Vector<>();
         for (final var yEntries : mCells.entrySet()) {
             final var y = yEntries.getKey();
             final var row = yEntries.getValue();
             for (final var xEntries : row.entrySet()) {
                 final var x = xEntries.getKey();
                 final var state = xEntries.getValue();
-                fields.add(new GOLField(x, y, state));
+                fields.add(new GOLFieldT<>(x, y, state));
             }
         }
 
-        final Map<Integer, Map<Integer, Boolean>> nextCells = new HashMap<>();
+        final Map<T, Map<T, Boolean>> nextCells = new HashMap<>();
         while (!fields.isEmpty()) {
             final var field = fields.removeFirst();
             final var x = field.x;
@@ -72,10 +85,10 @@ public class GOLGame {
                     if (i == 0 && j == 0)
                         continue;
 
-                    final var dx = x + i;
-                    final var dy = y + j;
+                    final var dx = cast(x.intValue() + i, mClass);
+                    final var dy = cast(y.intValue() + j, mClass);
                     if (get(mCells, dx, dy)) nc++;
-                    else if (state) fields.add(new GOLField(dx, dy, false));
+                    else if (state) fields.add(new GOLFieldT<>(dx, dy, false));
                 }
 
             if (!state && nc == 3)
