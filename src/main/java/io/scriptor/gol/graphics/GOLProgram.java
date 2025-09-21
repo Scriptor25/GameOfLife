@@ -11,21 +11,27 @@ import static org.lwjgl.opengl.GL20.*;
 public class GOLProgram {
 
     private final int mPtr;
-    private final Map<String, Integer> mUniformLocs = new HashMap<>();
+    private final Map<String, Integer> mUniformLocations = new HashMap<>();
 
-    public GOLProgram(String... shaderfiles) throws IOException {
+    public GOLProgram(String... shaderFiles) throws IOException {
         mPtr = glCreateProgram();
-        for (final var filename : shaderfiles) {
+        for (final var filename : shaderFiles) {
             final var ending = filename.substring(filename.lastIndexOf('.') + 1);
             final var type = switch (ending) {
                 case "vsh" -> GL_VERTEX_SHADER;
                 case "fsh" -> GL_FRAGMENT_SHADER;
                 default -> throw new RuntimeException();
             };
+            final var stream = ClassLoader.getSystemResourceAsStream(filename);
+            if (stream == null)
+                continue;
+
             final var builder = new StringBuilder();
-            final var reader = new BufferedReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream(filename)));
-            for (String line = reader.readLine(); line != null; line = reader.readLine())
-                builder.append(line).append('\n');
+            try (stream) {
+                final var reader = new BufferedReader(new InputStreamReader(stream));
+                for (String line; (line = reader.readLine()) != null; )
+                    builder.append(line).append('\n');
+            }
 
             final var shader = glCreateShader(type);
             glShaderSource(shader, builder.toString());
@@ -53,10 +59,10 @@ public class GOLProgram {
     }
 
     public GOLProgram uniform(String name, IUniform uniform) {
-        var loc = mUniformLocs.get(name);
+        var loc = mUniformLocations.get(name);
         if (loc == null) {
             loc = glGetUniformLocation(mPtr, name);
-            mUniformLocs.put(name, loc);
+            mUniformLocations.put(name, loc);
         }
 
         uniform.set(loc);

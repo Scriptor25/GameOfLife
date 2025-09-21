@@ -1,6 +1,5 @@
 package io.scriptor.gol.graphics;
 
-import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
 import org.lwjgl.glfw.GLFWScrollCallbackI;
 
@@ -12,17 +11,6 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class GOLWindow {
 
-    public static void init() {
-        GLFWErrorCallback.createPrint(System.err).set();
-        if (!glfwInit())
-            throw new RuntimeException();
-    }
-
-    public static void terminate() {
-        glfwTerminate();
-        glfwSetErrorCallback(null).free();
-    }
-
     private final long mPtr;
     private final List<GLFWKeyCallbackI> mKeyCallbacks = new Vector<>();
     private final List<GLFWScrollCallbackI> mScrollCallbacks = new Vector<>();
@@ -33,22 +21,29 @@ public class GOLWindow {
         if (mPtr == NULL)
             throw new RuntimeException();
 
-        glfwSetKeyCallback(mPtr, (window, key, scancode, action, mods) -> {
+        final var keyCallback = glfwSetKeyCallback(mPtr, (window, key, scancode, action, mods) -> {
             if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
                 glfwSetWindowShouldClose(window, true);
 
             for (final var callback : mKeyCallbacks)
                 callback.invoke(window, key, scancode, action, mods);
         });
-        glfwSetScrollCallback(mPtr, (window, xoffset, yoffset) -> {
-            for (final var callback : mScrollCallbacks)
-                callback.invoke(window, xoffset, yoffset);
-        });
+        if (keyCallback != null)
+            keyCallback.close();
 
+        final var scrollCallback = glfwSetScrollCallback(mPtr, (window, xOffset, yOffset) -> {
+            for (final var callback : mScrollCallbacks)
+                callback.invoke(window, xOffset, yOffset);
+        });
+        if (scrollCallback != null)
+            scrollCallback.close();
+    }
+
+    public void makeCurrent() {
         glfwMakeContextCurrent(mPtr);
     }
 
-    public boolean spin() {
+    public boolean spinOnce() {
         glfwSwapBuffers(mPtr);
         glfwPollEvents();
 

@@ -3,6 +3,7 @@ package io.scriptor.gol.game;
 import io.scriptor.gol.scene.GOLMesh;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -20,35 +21,26 @@ public class GOLGame {
     private final GOLMesh mMesh = new GOLMesh();
     private float mTime = 0;
 
-    public int count() {
-        return mMesh.count();
+    public void draw() {
+        mMesh.draw();
     }
 
-    public void bind() {
-        mMesh.bind();
-    }
-
-    public void unbind() {
-        mMesh.unbind();
-    }
-
-    public GOLGame set(int x, int y, boolean alive) {
+    public void set(int x, int y, boolean alive) {
         mCells.computeIfAbsent(y, key -> new HashMap<>()).put(x, alive);
-        return this;
     }
 
-    public GOLGame toggle(int x, int y) {
-        return set(x, y, !get(mCells, x, y));
+    public void toggle(int x, int y) {
+        set(x, y, !get(mCells, x, y));
     }
 
-    public void step(float delta) {
+    public int step(float delta) {
         if (mTime < 0.01f) {
             mTime += delta;
-            return;
+            return 0;
         }
         mTime = 0;
 
-        final Vector<GOLField> fields = new Vector<>();
+        final List<GOLField> fields = new Vector<>();
         for (final var yEntries : mCells.entrySet()) {
             final var y = yEntries.getKey();
             final var row = yEntries.getValue();
@@ -60,11 +52,13 @@ public class GOLGame {
         }
 
         final Map<Integer, Map<Integer, Boolean>> nextCells = new HashMap<>();
+        int change = 0;
+
         while (!fields.isEmpty()) {
             final var field = fields.removeFirst();
             final var x = field.x;
             final var y = field.y;
-            var state = field.state;
+            final var prevState = field.state;
 
             int nc = 0;
             for (int j = -1; j <= 1; j++)
@@ -74,21 +68,21 @@ public class GOLGame {
 
                     final var dx = x + i;
                     final var dy = y + j;
-                    if (get(mCells, dx, dy)) nc++;
-                    else if (state) fields.add(new GOLField(dx, dy, false));
+                    if (GOLGame.get(mCells, dx, dy)) nc++;
+                    else if (prevState) fields.add(new GOLField(dx, dy, false));
                 }
 
-            if (!state && nc == 3)
-                state = true;
-            else if (state && (nc < 2 || nc > 3))
-                state = false;
+            final boolean state = (!prevState && nc == 3) || (prevState && (nc == 2 || nc == 3));
+            if (state) GOLGame.put(nextCells, x, y, true);
 
-            if (state)
-                put(nextCells, x, y, state);
+            if (state != prevState)
+                change++;
         }
 
         mCells.clear();
         mCells.putAll(nextCells);
+
+        return change > 0 ? 1 : 2;
     }
 
     public void generateMesh() {
@@ -106,8 +100,8 @@ public class GOLGame {
                         .addVertex(x - 0.5f, y + 0.5f, a)
                         .addVertex(x + 0.5f, y + 0.5f, a)
                         .addVertex(x + 0.5f, y - 0.5f, a)
-                        .addFace(idx + 0, idx + 1, idx + 2)
-                        .addFace(idx + 2, idx + 3, idx + 0);
+                        .addFace(idx, idx + 1, idx + 2)
+                        .addFace(idx + 2, idx + 3, idx);
                 idx += 4;
             }
         }

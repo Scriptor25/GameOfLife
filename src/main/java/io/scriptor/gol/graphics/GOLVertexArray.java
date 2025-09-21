@@ -11,9 +11,8 @@ public class GOLVertexArray {
         mPtr = glGenVertexArrays();
     }
 
-    public GOLVertexArray bind() {
+    public void bind() {
         glBindVertexArray(mPtr);
-        return this;
     }
 
     public void unbind() {
